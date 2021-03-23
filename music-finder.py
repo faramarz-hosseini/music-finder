@@ -1,7 +1,7 @@
 import requests
 import base64
 import datetime
-user_search = input("Search for: ")
+user_search = input("Artist: ")
 singles = []
 songs = {}
 client_id = "2fa050e95ec846d0b60ecdfff3912f5d"
@@ -67,9 +67,10 @@ for album_name, song_list in songs.items():
     for song in song_list:
         print("    " + song)
     print("\n", end="")
-print("Singles:")
-for song in list(dict.fromkeys(singles)):
-    print("    " + song)
+if len(singles) != 0:
+    print("Singles:")
+    for song in list(dict.fromkeys(singles)):
+        print("    " + song)
 
 print("""
 ------------------
