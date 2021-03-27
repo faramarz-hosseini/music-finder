@@ -19,9 +19,10 @@ class Spotify:
 
     def __init__(self):
         self.access_token = None
+        self.token_expire_time = -1
 
     def get_access_token(self):
-        if self.access_token is not None:
+        if self.access_token is not None and datetime.datetime.now().second < self.token_expire_time:
             return self.access_token
         client_credentials = base64.b64encode(f"{CLIENT_ID}:{CLIENT_SECRET}".encode())
         r = requests.post(
@@ -30,9 +31,11 @@ class Spotify:
             headers={"Authorization": f"Basic {client_credentials.decode()}"}
         )
         valid_request = r.status_code in range(200, 299)
+        if not valid_request:
+            raise Exception(f"cannot get token. status code: {r.status_code}")
         token_response_data = r.json()
         self.access_token = token_response_data["access_token"]
-        self.token_expires_time = token_response_data["expires_in"] + datetime.datetime.now().second
+        self.token_expire_time = token_response_data["expires_in"] + datetime.datetime.now().second
         return self.access_token
 
     def search_artist(self, query):
