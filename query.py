@@ -2,25 +2,27 @@ import webbrowser
 from spotify import *
 
 query = input("Artist: ")
-spotify_token = SpotifyToken()
 
 
-class DataParse:
+class SpotifyArtistManager:
     def __init__(self):
-        self.song_number = 1
-        self.songs = {}
-        self.singles = {}
-        self.singles_number = 0
+        self.token = SpotifyToken()
+        self.song_num_to_url = {}
 
-    @staticmethod
-    def search_api_parse():
-        response_from_search_api = SpotifyAPI.search_artist(query, spotify_token.get_access_token())
-        artist_id = response_from_search_api["artists"]["items"][0]["id"]
-        artist_name = response_from_search_api["artists"]["items"][0]["name"]
+    def fetch_artist_info(self, artist_name):
+        response_from_search_api = SpotifyAPI.search_artist(artist_name, self.token.get_access_token())
+        try:
+            artist_id = response_from_search_api["artists"]["items"][0]["id"]
+            artist_name = response_from_search_api["artists"]["items"][0]["name"]
+        except Exception:
+            raise Exception("no artist was found with this name.")
         return artist_id, artist_name
 
-    def parse_album_api(self):
-        response_from_album_api = SpotifyAPI.get_artist_albums(self.search_api_parse()[0], spotify_token.get_access_token())
+    def fetch_artist_albums(self, artist_id):
+        response_from_album_api = SpotifyAPI.get_artist_albums(
+            artist_id=artist_id,
+            access_token=self.token.get_access_token()
+        )
         albums_data = response_from_album_api["items"]
         albums = {}
         singles = {}
@@ -28,62 +30,50 @@ class DataParse:
             if album["album_type"] == "album":
                 albums[album["id"]] = album["name"]
             elif album["album_type"] == "single":
-                singles[album["external_urls"]["spotify"]] = {"name": album["name"], "id": album["id"]}
+                singles[album["id"]] = {"name": album["name"], "url": album["external_urls"]["spotify"]}
         return albums, singles
 
-    @staticmethod
-    def parse_album_tracks_api(album_id):
-        response_from_album_tracks_api = SpotifyAPI.get_album_tracks(album_id, spotify_token.get_access_token())
+    def fetch_album_tracks(self, album_id):
+        response_from_album_tracks_api = SpotifyAPI.get_album_tracks(album_id, self.token.get_access_token())
         songs_data = response_from_album_tracks_api["items"]
-        for song in songs_data:
-            data_parse_obj.songs[song["id"]] = {
-                "name": song["name"],
-                "spotify": song["external_urls"]["spotify"],
-                "song_number": data_parse_obj.song_number
-            }
-            data_parse_obj.song_number += 1
-        return data_parse_obj.songs
+        songs = {song["id"]: {"name": song["name"], "spotify": song["external_urls"]["spotify"]} for song in songs_data}
+        return songs
+
+    def print_artist_songs(self, query):
+        artist_id, artist_name = self.fetch_artist_info(query)
+        print(f"Retrieving songs for {artist_name}...")
+        albums, singles = self.fetch_artist_albums(artist_id)
+        self.print_albums(albums)
+        if len(singles):
+            print("Singles:")
+            self.print_singles(singles)
+
+    def print_albums(self, albums):
+        counter = 1
+        for album_id, album_name in albums.items():
+            print(f"{album_name}:")
+            for song in self.fetch_album_tracks(album_id).values():
+                print(f"\t - {song['name']} ({counter})")
+                self.song_num_to_url[str(counter)] = song["spotify"]
+                counter += 1
+
+    def print_singles(self, singles):
+        counter = 1
+        for single_id, single_info in singles.items():
+            print(f"\t - {single_info['name']} (s{counter})")
+            self.song_num_to_url[f"s{counter}"] = single_info["url"]
+            counter += 1
 
 
-def album_data_printer():
-    print(f"Retrieving songs for {data_parse_obj.search_api_parse()[1]}...")
-    for album_id, album_name in data_parse_obj.parse_album_api()[0].items():
-        print(f"{album_name}:")
-        for song in data_parse_obj.parse_album_tracks_api(album_id).values():
-            print(f"\t -{song['name']} ({song['song_number']})")
-
-
-def singles_data_printer():
-    if len(data_parse_obj.parse_album_api()[1]) != 0:
-        print("Singles:")
-    for single_link, single_info in data_parse_obj.parse_album_api()[1].items():
-        data_parse_obj.singles[single_info["id"]] = single_info["name"]
-        data_parse_obj.songs[single_info['id']] = {
-                "name": single_info["name"],
-                "spotify": single_link,
-                "song_number": data_parse_obj.song_number
-            }
-        print(f"\t -{single_info['name']} ({data_parse_obj.song_number})")
-        data_parse_obj.song_number += 1
-
-
-def prepare_song_links():
-    song_number_link = {}
-    for song_info in data_parse_obj.songs.values():
-        song_number_link[song_info["song_number"]] = song_info["spotify"]
-    return song_number_link
-
-
-def play_track_album(song_link):
+def open_track_url(songs_links):
     try:
-        user_search_single = int(input("Number of the song: "))
-        webbrowser.open(url=song_link.get(user_search_single))
-    except:
+        user_search_single = input("Number of the song: ")
+        webbrowser.open(url=songs_links[user_search_single])
+    except KeyError:
         print("Invalid number. Please try again.")
 
 
-data_parse_obj = DataParse()
-album_data_printer()
-singles_data_printer()
-prepare_song_links()
-play_track_album(prepare_song_links())
+spotify_artist_manager = SpotifyArtistManager()
+spotify_artist_manager.print_artist_songs(query)
+while True:
+    open_track_url(spotify_artist_manager.song_num_to_url)

@@ -21,8 +21,8 @@ class SpotifyAPI:
     }
 
     @staticmethod
-    def get_token(client_id=CLIENT_ID, client_secret=CLIENT_SECRET):
-        client_credentials = base64.b64encode(f"{client_id}:{client_secret}".encode())
+    def get_token():
+        client_credentials = base64.b64encode(f"{CLIENT_ID}:{CLIENT_SECRET}".encode())
         r = requests.post(
             url=SpotifyAPI.ENDPOINTS["TOKEN"],
             data={"grant_type": "client_credentials"},
