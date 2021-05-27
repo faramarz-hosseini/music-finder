@@ -4,7 +4,7 @@ respective songs) and singles using a variety of Spotify APIs. After the retriev
 the choice to enter a song number, after which the program opens a new tab in their browser and plays
 their song on Spotify.
 ## How to run it
-Open terminal, change direction (cd) into the project directory and:\
+Open terminal, change direction (cd) into the project directory and:
 ```python
 python3 query.py 
 ```
@@ -64,7 +64,7 @@ The data acquired from these methods are then passed to three other methods whic
 <li>print_singles()</li>
 
 <br></br>
-#### Method: open_track_url
+#### Function: open_track_url
 After the data is fetched, printed and shown to the user, this method takes input from user and based on it, opens and plays one of the songs in the browser (The songs have numbers which can be used with this method to point to a song.)
 ```python
 def open_track_url(songs_links):
